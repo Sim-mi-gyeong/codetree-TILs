@@ -1,277 +1,132 @@
 import sys
-
-input = sys.stdin.readline
-
-# 루돌프 움직임
-# 위, 오른쪽 위, 오른쪽, 오른쪽 아래, 아래, 왼쪽 아래, 왼쪽, 왼쪽 위
-dx_rudolf = [-1, -1, 0, 1, 1, 1, 0, -1]
-dy_rudolf = [0, 1, 1, 1, 0, -1, -1, -1]
-
-# 산타 움직임
-# 상우하좌
-dx_santa = [-1, 0, 1, 0]
-dy_santa = [0, 1, 0, -1]
-
-
-class Rudolf:
-    def __init__(self, x, y, power, dir):
-        self.x = x
-        self.y = y
-        self.power = power
-        self.dir = dir
-
-    def move(self, nd):
-        self.x += dx_rudolf[nd]
-        self.y += dy_rudolf[nd]
-        self.dir = nd
-
-
-# die : 죽음 여부
-# shock_turn : 기절한 턴
+si = sys.stdin.readline
 class Santa:
-    def __init__(self, num, x, y, power, score, dir, die, shock_turn):
-        self.num = num
-        self.x = x
-        self.y = y
-        self.power = power
-        self.score = score
-        self.dir = dir  # 산타의 방향
-        self.die = die  # 죽었는지 여부
-        self.shock_turn = shock_turn  # 루돌프와 충돌하여 기절한 턴 번호
-
-    def move(self, nx, ny, nd):
-
-        # 이동 전 위치 초기화
-        graph[self.x][self.y] = 0
-
-        self.x = nx
-        self.y = ny
-        self.dir = nd
-
-        # 이동 후 번호 기록
-        graph[self.x][self.y] = self.num
-
-
-n, m, p, c, d = map(int, input().split())
-
-graph = [[0] * (n + 1) for _ in range(n + 1)]
-sx, sy = map(int, input().split())  # 루돌프 위치
-rudolf = Rudolf(sx, sy, c, 0)
-
-# p명의 산타 번호와 위치
-
-### TC 1번은 산타 순서대로 입력 받으니까!!!!!!!!! 번호 == santas 에서 인덱스
-### TC 2번은 산타 순서대로 입력 받지 X -> dict 형태로?
-# santas = dict()
-santas = [None for _ in range(p + 1)]  # 각 산타의 위치
+    def __init__(self, r, c):
+        # 산타의 행, 열 위치
+        self.r = r
+        self.c = c
+        # 산타가 얻은 점수
+        self.score = 0
+        # 언제까지 기절하는 지
+        self.faint = -1
+        # 생존 여부
+        self.alive = True
+# input
+n, m, p, C, D = map(int, si().split())
+rudolf = list(map(int, si().split()))  # 루돌프의 위치
+santas = [None for _ in range(p)]  # 각 산타의 위치
 for _ in range(p):
-    num, x, y = map(int, input().split())
-    graph[x][y] = num
-    # score : 0, dir : 0, die : False, shock_turn : 0 초기화
-    santa = Santa(num, x, y, d, 0, 0, False, -1)
-    santas[num] = santa
-
-
-# src_santa_num 산타가 (next_x, next_y) 로 밀려나려고 할 때,
-# 그 위치에 다른 산타(target_santa_num)가 있는 경우 연쇄적으로 1칸씩 밀려남
-def interaction(type, src_santa_num, target_santa_num, next_x, next_y, dir):
-
-    if type == 0:
-        new_next_x = next_x + dx_rudolf[dir]
-        new_next_y = next_y + dy_rudolf[dir]
-
-    elif type == 1:
-        new_next_x = next_x + dx_santa[dir]
-        new_next_y = next_y + dy_santa[dir]
-
-    # # 그것과는 별개로 나는(최초 밀려난 산타) 이동
-    # santas[src_santa_num].move(next_x, next_y, dir)
-
-    # 밀려나게 될 산타가 범위 벗어나는 경우
-    if new_next_x < 1 or new_next_x > n or new_next_y < 1 or new_next_y > n:
-        santas[target_santa_num].die = True
-        return
-
-    # 밀려나는 산타가 이동하게 된 위치에 또 산타가 있는 경우
-    if graph[new_next_x][new_next_y] != 0:
-        interaction(
-            type,
-            target_santa_num,
-            graph[new_next_x][new_next_y],
-            new_next_x,
-            new_next_y,
-            dir,
-        )
-    else:
-        santas[target_santa_num].move(new_next_x, new_next_y, dir)
-
-    # 그것과는 별개로 나는(최초 밀려난 산타) 이동
-    santas[src_santa_num].move(next_x, next_y, dir)
-
-
-# 루돌프에 의해 밀려난건지 -> type -> 0
-# 산타에 의해 밀려난건지 -> type : 1
-# 에 따라 dx 가 달라짐
-def conflict(type, score, num, x, y, dir):
-    # 얻을 점수(=밀려날 칸 수), 밀려날 산타 번호, 위치 x, 위치 y, 밀려날 방향
-
-    # 밀려가게 될 예정이므로, 위치 초기화
-    graph[x][y] = 0
-
-    # 루돌프에 의해서 충돌이 발생했는데 -> 이후 상호작용이 일어나는 경우는 TC 1번에 X
-
-    if type == 0:
-        next_x = santas[num].x + dx_rudolf[dir] * score
-        next_y = santas[num].y + dy_rudolf[dir] * score
-
-    elif type == 1:
-        next_x = santas[num].x + dx_santa[dir] * score
-        next_y = santas[num].y + dy_santa[dir] * score
-
-    if next_x < 1 or next_x > n or next_y < 1 or next_y > n:
-        santas[num].die = True
-        return
-
-    # 밀려난 칸에 다른 산타가 있는 경우
-    if graph[next_x][next_y] != 0:
-        interaction(type, num, graph[next_x][next_y], next_x, next_y, dir)
-
-    else:
-        santas[num].move(next_x, next_y, dir)
-
-
-def move_rudolf(turn):
-
-    # 8방향 중 1칸 이동을 위해 탈락하지 않은, 가장 가까운 산타 찾기
-    # 1~p번 산타들 간 가장 가까운?
-
-    min_dist = int(1e9)
-    min_dist_santa = []
-    for i in range(1, p + 1):
-        # 탈락한 산타는 X
-        if santas[i].die:
+    idx, r, c = map(int, si().split())
+    idx -= 1
+    santas[idx] = Santa(r, c)
+dirs = ((-1, 0), (0, 1), (1, 0), (0, -1), (-1, -1), (-1, 1), (1, -1), (1, 1))
+def get_dist(r1, c1, r2, c2):
+    return (r1 - r2) * (r1 - r2) + (c1 - c2) * (c1 - c2)
+def get_dist_rudolf_and_santa(s: Santa):
+    return get_dist(rudolf[0], rudolf[1], s.r, s.c)
+def move_rudolf() -> int:
+    # 1. 가장 가까운 산타 찾기
+    tgt = None
+    for i in range(p):
+        if not santas[i].alive:  # 탈락한 산타면 무시하기
             continue
-        target_x, target_y = santas[i].x, santas[i].y
-
-        dist = (rudolf.x - target_x) ** 2 + (rudolf.y - target_y) ** 2
-
-        min_dist_santa.append((dist, i, target_x, target_y))
-
-    # 목표 산타 찾기
-    # r 좌표 큰 > c 좌표 큰 산타 찾기
-    min_dist_santa = sorted(min_dist_santa, key=lambda x: (x[0], -x[2], -x[3]))
-    target_santa = min_dist_santa[0]
-
-    # 목표 산타와 8방향 중 가장 가까원지는 방향으로 한 칸 돌진
-    min_dist = int(1e9)
-    min_dir = 0
-    target_num, target_x, target_y = target_santa[1], target_santa[2], target_santa[3]
+        if tgt is None:
+            tgt = santas[i]
+        else:
+            # 지금까지 알던 최단거리
+            d1 = get_dist_rudolf_and_santa(tgt)
+            # 새롭게 만난 산타와의 거리
+            d2 = get_dist_rudolf_and_santa(santas[i])
+            if d1 > d2:
+                tgt = santas[i]
+            elif d1 == d2 and (tgt.r < santas[i].r or (tgt.r == santas[i].r and tgt.c < santas[i].c)):
+                tgt = santas[i]
+    # 2. 이동 방향 정하기
+    direction, dist = 0, 0
     for d in range(8):
-        next_x, next_y = rudolf.x + dx_rudolf[d], rudolf.y + dy_rudolf[d]
-        if next_x < 1 or next_x > n or next_y < 1 or next_y > n:
+        # 루돌프가 d 번 방향으로 갔을 때의 위치
+        nr, nc = rudolf[0] + dirs[d][0], rudolf[1] + dirs[d][1]
+        new_dist = get_dist(nr, nc, tgt.r, tgt.c)
+        if d == 0 or dist > new_dist:
+            direction = d
+            dist = new_dist
+    # 3. 해당 방향으로 이동 하기
+    rudolf[0] += dirs[direction][0]
+    rudolf[1] += dirs[direction][1]
+    return direction
+def conflict(arrive_r, arrive_c, direction, dist, current_turn):
+    # 만약 (arrive_r, arrive_c) 에서 충돌이 일어났다면, 산타를 direction 방향으로 dist 만큼 밀어내는 함수
+    
+    # 1. 충돌이 일어났는 지 확인
+    for i in range(p):
+        if not santas[i].alive:
             continue
-        dist = (target_x - next_x) ** 2 + (target_y - next_y) ** 2
-        if min_dist > dist:
-            min_dist = dist
-            min_dir = d
-
-    # 목표 산타와 가장 가까워지는 방향으로 이동
-    rudolf.move(min_dir)
-
-    # 이동을 했는데, 산타와 충돌한 경우
-    if graph[rudolf.x][rudolf.y] != 0:
-        santa_num = graph[rudolf.x][rudolf.y]
-
-        # 산타 기절
-        santas[santa_num].shock_turn = turn
-
-        santas[santa_num].score += c
-
-        conflict(0, c, santa_num, santas[santa_num].x, santas[santa_num].y, min_dir)
-
-
-def move_santa(turn, idx):
-
-    ####### KEY POINT) min_dist 를 int(1e9) 로 설정하니까, 원래 위치에서 어느 위치로 가든 더 가까워질 수밖에 없음!!!!!!!!!!!!!!
-    ####### -> 움직이기 전의 위치에서 산타와의 거리를 min_dist 값으로 초기 설정해야 함!!!!!!!
-    ####### -> ~에게 거리가 가장 가까워지는 방향으로 이동할 때 체크할 점!!!!!
-    # min_dist = int(1e9)
-    init_dist = (santas[idx].x - rudolf.x) ** 2 + (santas[idx].y - rudolf.y) ** 2
-    min_dist = init_dist
-
-    # # 가장 가까워질 수 있는 방향이 여러 개라면, 상우하좌 우선순위에 맞춰 움직임
-    min_dir_list = []
-    for i in range(4):
-        santa_next_x = santas[idx].x + dx_santa[i]
-        santa_next_y = santas[idx].y + dy_santa[i]
-
-        # 범위 벗어나면 X
-        if santa_next_x < 1 or santa_next_x > n or santa_next_y < 1 or santa_next_y > n:
+        if arrive_r == santas[i].r and arrive_c == santas[i].c:
+            dr, dc = dirs[direction]
+            nr = santas[i].r + dr * dist  # 도착하는 위치 좌표
+            nc = santas[i].c + dc * dist
+            # 도착하는 위치에 대해 연쇄적인 상호작용
+            # 내가 도착할 위치에 있는 산타를, 나랑 똑같은 방향으로, 1만큼 밀어줘
+            conflict(nr, nc, direction, 1, current_turn)
+            # 도착할 위치가 깨끗해졌으니, 이동하자!
+            santas[i].r = nr
+            santas[i].c = nc
+            # 기절 여부
+            if rudolf == [arrive_r, arrive_c]:
+                santas[i].faint = current_turn + 1
+                santas[i].score += dist
+            # 탈락 여부 확인
+            if santas[i].r < 1 or santas[i].c < 1 or santas[i].r > n or santas[i].c > n:
+                santas[i].alive = False
+def santa_exist(r, c) -> bool:
+    for i in range(p):
+        if santas[i].r == r and santas[i].c == c:
+            return True
+    return False
+def move_santa(s: Santa) -> int:
+    # 1. 루돌프를 향해 이동하기
+    tgt = Santa(rudolf[0], rudolf[1])
+    # 2. 이동 방향 정하기
+    direction, dist = -1, get_dist(s.r, s.c, tgt.r, tgt.c)
+    for d in range(4):
+        # 산타가 d 번 방향으로 갔을 때의 위치
+        nr, nc = s.r + dirs[d][0], s.c + dirs[d][1]
+        new_dist = get_dist(nr, nc, tgt.r, tgt.c)
+        if dist > new_dist and not santa_exist(nr, nc):
+            direction = d
+            dist = new_dist
+    if direction != -1:
+        # 3. 해당 방향으로 이동 하기
+        s.r += dirs[direction][0]
+        s.c += dirs[direction][1]
+    return direction
+# simulation
+for turn in range(m):
+    # 1. 루돌프 이동
+    rudolf_direction = move_rudolf()
+    # 2. 충돌이 일어났다면, 산타를 밀어내기
+    conflict(rudolf[0], rudolf[1], rudolf_direction, C, turn)
+    # 3. 산타 0 ~ (P - 1)번 순서로 이동
+    for i in range(p):
+        if not santas[i].alive:
             continue
-
-        #### 산타는 루돌프 or 다른 산타가 있는 경우 이동 불가!!
-        # 루돌프가 있다면 X
-
-        # 다른 산타가 있으면 X
-        if graph[santa_next_x][santa_next_y] != 0:
+        if santas[i].faint >= turn:  # 아직 기절해있다면, 이동 X
             continue
-
-        dist = (santa_next_x - rudolf.x) ** 2 + (santa_next_y - rudolf.y) ** 2
-        min_dir_list.append((dist, i))
-        if min_dist > dist:
-            min_dist = dist
-
-    # 움직일 수 있는 칸이 있더라도, 루돌프로부터 가까워질 수 있는 방법 X -> 산타 움직이지 X
-
-    if min_dist == init_dist:
-        return
-
-    min_dir_list = sorted(min_dir_list, key=lambda x: (x[0], x[1]))
-    target_min_dir = min_dir_list[0]
-    next_dir = target_min_dir[1]
-    next_x, next_y = (
-        santas[idx].x + dx_santa[next_dir],
-        santas[idx].y + dy_santa[next_dir],
-    )
-    santas[idx].move(next_x, next_y, next_dir)
-
-    # 이동을 했는데, 루돌프와 충돌한 경우
-    if (rudolf.x, rudolf.y) == (santas[idx].x, santas[idx].y):
-        santas[idx].shock_turn = turn
-
-        ### 위에서 방향 d 의 값이 들어가게 됨!!!!!
-
-        santas[idx].score += d
-        conflict(1, d, idx, santas[idx].x, santas[idx].y, next_dir ^ 2)
-
-
-for turn in range(1, m + 1):
-
-    # 1. 루돌프 움직임
-    move_rudolf(turn)
-
-    # 2. 산타 움직임
-    for idx in range(1, p + 1):
-
-        # 기절한 턴의 다음 턴이거나, 탈락한 경우 X
-        santa = santas[idx]
-
-        if turn == santa.shock_turn or turn == santa.shock_turn + 1 or santa.die:
+        # 3-1. 산타 이동하기
+        direction = move_santa(santas[i])
+        if direction == -1:  # 산타가 이동하지 않은 경우
             continue
-
-        move_santa(turn, idx)
-
+        # 3-2. 매 이동 마다 충돌이 일어났다면, 산타를 밀어내기
+        conflict(rudolf[0], rudolf[1], direction ^ 2, D, turn)
     # 4. 살아남은 산타의 점수 증가
     alive_cnt = 0
-    for i in range(1, p + 1):
-        if not santas[i].die:
+    for i in range(p):
+        if santas[i].alive:
             santas[i].score += 1
             alive_cnt += 1
-
     # 5. 모든 산타가 탈락했다면, 즉시 게임 종료
     if alive_cnt == 0:
         break
-
-total_score = 0
-for i in range(1, p + 1):
-    print(santas[i].score, end=" ")
+for i in range(p):
+    # i 번째 산타의 점수 출력하기
+    print(santas[i].score, end=' ')
