@@ -8,6 +8,7 @@ class Tower:
         self.y = y
         self.power = power
         self.last_attack = last_attack
+        # self.effect_attack = effect_attack
 
     def minus_power(self, minus):
         self.power -= minus
@@ -21,10 +22,12 @@ for i in range(1, n + 1):
     lst = list(map(int, input().split()))
     for j in range(1, m + 1):
         tower = Tower(4 * (i - 1) + j, i, j, lst[j - 1], 0)
+        # graph[i][j] = lst[j - 1]
         graph[i][j] = tower
 
 
 def find_fighter():
+    # 매번 n * m 크기의 격자를 돌면서 체크 가능?! (10 * 10 * 1000)
     min_power_list = []
     for i in range(1, n + 1):
         for j in range(1, m + 1):
@@ -41,12 +44,13 @@ def find_fighter():
     return graph[min_power_list[0][0]][min_power_list[0][1]]
 
 
-def find_target():
+def find_target(fighter):
     max_power_list = []
     for i in range(1, n + 1):
         for j in range(1, m + 1):
             tower = graph[i][j]
-            if tower.power > 0:
+            #### 공격자 본인 제외!!!!!!!!!!!
+            if tower.power > 0 and (i, j) != (fighter.x, fighter.y):
                 max_power_list.append(
                     (tower.x, tower.y, tower.power, tower.last_attack)
                 )
@@ -54,6 +58,7 @@ def find_target():
     max_power_list = sorted(
         max_power_list, key=lambda x: (-x[2], x[3], (x[0] + x[1]), x[2])
     )
+
     return graph[max_power_list[0][0]][max_power_list[0][1]]
 
 
@@ -76,7 +81,6 @@ def raser(fighter, target):
             target.x,
             target.y,
         ):
-            # print("레이저 공격 가능")
 
             break
 
@@ -133,23 +137,23 @@ def raser(fighter, target):
 # - 공격 대상-> - 공격자 공격력
 # - 주위 8방향에 피해 -> - 공격자 공격력 // 2 (격자가 이어진 상태!!)
 def bomb(fighter, target):
-
     target.power -= fighter.power
 
     minus_power = fighter.power // 2
 
     for d in range(8):
         nx = target.x + dir_x[d]
-        ny = target.x + dir_x[d]
+        ny = target.y + dir_y[d]
 
         if nx < 1:
             nx = n
         elif nx > n:
             nx = 1
+
         elif ny < 1:
-            ny = 1
-        elif ny > m:
             ny = m
+        elif ny > m:
+            ny = 1
 
         if graph[nx][ny].power > 0:
             graph[nx][ny].power -= minus_power
@@ -162,7 +166,7 @@ dy = [1, 0, -1, 0]
 
 # 8방향(위 / 오른쪽 위 / 오른쪽 / 오른쪽 아래 / 아래 / 왼쪽 아래 / 왼쪽 / 왼쪽 위)
 dir_x = [-1, -1, 0, 1, 1, 1, 0, -1]
-dyi_y = [0, 1, 1, 1, 0, -1, -1, -1]
+dir_y = [0, 1, 1, 1, 0, -1, -1, -1]
 
 
 def choose_best():
@@ -189,7 +193,6 @@ def is_finish():
 
 
 for turn in range(1, k + 1):
-
     isEffect = [[False] * (m + 1) for _ in range(n + 1)]
 
     # 1. 공격자 찾기
@@ -204,7 +207,8 @@ for turn in range(1, k + 1):
     isEffect[fighter.x][fighter.y] = True
 
     # 2. 공격 대상 찾기
-    target = find_target()
+    target = find_target(fighter)
+    # isEffect[target.x][target.y] = True
 
     # 3. 공격 - 레이저 공격이 가능한 경우 레이저 공격, 그게 아니면 포탄 공격
     if not raser(fighter, target):
