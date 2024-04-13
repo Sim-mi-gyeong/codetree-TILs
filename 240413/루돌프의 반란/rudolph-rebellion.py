@@ -84,8 +84,8 @@ def interaction(src_santa_num, target_santa_num, next_x, next_y, dir):
     # 밀려나는 산타가 이동하게 된 위치에 또 산타가 있는 경우
     elif graph[new_next_x][new_next_y] != 0:
         interaction(
-            # target_santa_num,
-            src_santa_num,
+            target_santa_num,
+            # src_santa_num,
             graph[new_next_x][new_next_y],
             new_next_x,
             new_next_y,
