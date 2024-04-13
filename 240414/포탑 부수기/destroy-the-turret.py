@@ -88,7 +88,7 @@ def raser(fighter, target):
             elif nx > n:
                 nx = 1
 
-            elif ny < 1:
+            if ny < 1:
                 ny = m
             elif ny > m:
                 ny = 1
@@ -146,7 +146,7 @@ def bomb(fighter, target):
         elif nx > n:
             nx = 1
 
-        elif ny < 1:
+        if ny < 1:
             ny = m
         elif ny > m:
             ny = 1
